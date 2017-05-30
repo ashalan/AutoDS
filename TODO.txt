@@ -1,0 +1,14 @@
+TODO:
+
+- Which column are you trying to predict?
+- Are there missing values?
+    if so, impute or drop?
+- 
+
+
+Data Object:
+    Inherited by Column object:
+        Features:
+            - is_continuous
+            - #_of_values
+            

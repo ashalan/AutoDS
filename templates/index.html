@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='layout.css') }}">
+    </head>
+    <body>
+        <div class="container" id="page-wrapper">
+        <h2>What do you want to predict?</h2>
+        <h3><table><form action="" method="POST">
+            <td>
+                <label>Select :</label>
+                <select name="option" width="300px">
+                    {% for x in server_list %}
+                        <option value="{{ x }}"{% if loop.first %} SELECTED{% endif %}>{{ x }}</option>
+                    {% endfor %}
+                </select>
+                <input type=submit value=Predict>
+            </td>
+        </form></table></h3>
+        </div>
+    </body>
+</html>

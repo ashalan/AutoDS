@@ -1,0 +1,52 @@
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  $(function() {
+    $('button#calculate').bind('click', function() {
+       values = $('form').serialize();
+      $.getJSON($SCRIPT_ROOT + '/prediction?' + values, {
+      }, function(output) {
+        $("#result").text(output+'%');
+      });
+      return false;
+    });
+  });
+</script>
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='layout.css') }}">
+        <title>AutoDS</title>
+    </head>
+    <body class="body">
+        <h2>Prediction:</h2>
+        <div class="container" id="page-wrapper">
+            <div class="grey">
+                <h3>Model used</h3>
+                <p>{{data['predictor']}}</p>
+                <h3>Score:</h3>
+                <p>{{data['score']}}</p>
+                <h3>Predictors:</h3>
+                {% for item in data['regressors'] %}
+                    <p>{{item}}</p>
+                {% endfor %}
+                <p>Predicting: {{data['prediction']}}
+            </div>
+            <div class='model'>
+              <h1>Your API</h1>
+              <h2>Enter values to predict outcome:</h2>
+              <form role="form" method='POST' action='/' autocomplete="on">
+                <div class="form-group">
+                {% for item in data['regressors'] %}
+                  <p>{{item[0]}}</p>
+                  <input type="text" name={{item[0]}} placeholder="What is the {{item[0]}}" required>
+                {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-default" href=# id=calculate>Submit</button>
+                <div id=result>.........</div>
+              </form>
+            </div>
+        </div>
+        <div style="color: white; text-align: right; width: 640px; margin: 1em auto;">Amer Shalan 2016</div>
+    </body>
+</html>
