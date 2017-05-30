@@ -46,8 +46,6 @@ def output(data):
     # return render
     try:
         score = PREDICTOR.predict_proba(np.array(render).reshape(1, -1))
-        results = {'survival chances': score[0,1], 'death chances': score[0,0]}
-        print results
     except:
         score = PREDICTOR.predict(np.array(render).reshape(1, -1))        
     print score
