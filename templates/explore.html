@@ -1,0 +1,14 @@
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<html>
+    <head>
+        <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='layout.css') }}">
+    </head>
+    <body>
+        <div class="container" id="page-wrapper">
+        <h2>Let's take a look at your data?</h2>
+        <div>
+        {{ report }}
+        </div>
+        </div>
+    </body>
+</html>

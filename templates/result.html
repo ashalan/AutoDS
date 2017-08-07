@@ -19,18 +19,20 @@
         <title>AutoDS</title>
     </head>
     <body class="body">
-        <h2>Prediction:</h2>
         <div class="container" id="page-wrapper">
+            <h2>Prediction:</h2>
             <div class="grey">
+                <h3>Predicting: {{data['prediction']}}</h3>
                 <h3>Model used</h3>
                 <p>{{data['predictor']}}</p>
                 <h3>Score:</h3>
                 <p>{{data['score']}}</p>
+                <h3>Rows of Data Used:</h3>
+                <p>{{data['length']}}</p>
                 <h3>Predictors:</h3>
                 {% for item in data['regressors'] %}
-                    <p>{{item}}</p>
+                    <p>{{item["name"]}}</p>
                 {% endfor %}
-                <p>Predicting: {{data['prediction']}}
             </div>
             <div class='model'>
               <h1>Your API</h1>
@@ -38,8 +40,22 @@
               <form role="form" method='POST' action='/' autocomplete="on">
                 <div class="form-group">
                 {% for item in data['regressors'] %}
-                  <p>{{item[0]}}</p>
-                  <input type="text" name={{item[0]}} placeholder="What is the {{item[0]}}" required>
+                  <div class="form-item">
+                    <h3 class="input-name">{{item["name"]}}</h3>
+                    {% if item["numeric"] %}
+                      <span class="label_left">{{item["min"]}}</span>
+                      <span class="label_right">{{item["max"]}}</span>
+                      <input type="range" name="{{item["name"]}}" id="{{item["name"] ~ "InputId"}}" value={{item["min"]}} min={{item["min"]}} max={{item["max"]}} oninput="{{item["name"] ~ "OutputId"}}.value = {{item["name"] ~ "InputId"}}.value">
+                      <span class="rangeslider__tooltip" id="{{item["name"] ~ "OutputId"}}"></span>
+                    {% else %}
+                      <select name="{{item["name"]}}" id="{{item["name"] ~ "InputId"}}">
+                      {% for value in item["values"] %}
+                        <option value={{value}}>{{value}}</option>
+                      {% endfor %}
+                      </select>
+                    {% endif %}
+                  </div>
+                  <!-- <input type="text" name={{item}} placeholder="What is the {{item}}" required min={{item[0]}} max={{item[1]}}> -->
                 {% endfor %}
                 </div>
                 <button type="submit" class="btn btn-default" href=# id=calculate>Submit</button>
@@ -49,4 +65,7 @@
         </div>
         <div style="color: white; text-align: right; width: 640px; margin: 1em auto;">Amer Shalan 2016</div>
     </body>
+        <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
+        <script src="http://andreruffert.github.io/rangeslider.js/assets/rangeslider.js/dist/rangeslider.min.js"></script>
+        <script src="{{url_for('static',filename='slider.js')}}"></script>
 </html>
