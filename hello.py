@@ -38,7 +38,6 @@ def is_numeric(column):
 
 def uniqueness(column):
     ratio = len(set(column)) / float(len(column))
-    print ratio
     if ratio >= 0.9:
         return 'too high'
     elif ratio < 0.9 and ratio >= 0.4:
@@ -80,30 +79,7 @@ def create_dummy_values(df):
         # TODO
         # elif is_continuous_values(values[1]):
 
-def normalize(val, mean, std):
-    return (val - mean) / std
 
-def output(data):
-    PREDICTOR = pickle.load(open('files/pkl/PREDICTOR.pkl', 'rb'))
-    render = []
-    for x in data.values():
-        render.append(x)
-    print render
-    render = map(float, render)
-    render = map(normalize, render)
-
-    # return render
-    try:
-        score = PREDICTOR.predict_proba(np.array(render).reshape(1, -1))
-    except:
-        score = PREDICTOR.predict(np.array(render).reshape(1, -1))        
-    print score
-    return str(score[0,1]*100)
-    if score > 1 :
-        score = 1
-    elif score < 0:
-        score = 0
-    return round(score*100, 2)
 #TODO
 # def convert_to_numerics(df):
 #     for column in df.columns:
@@ -133,6 +109,7 @@ def column(filename):
         df = pd.read_csv(filepath)
     elif filepath.endswith(('xls','xlsx')):
         df = pd.read_excel(filepath)
+    df.columns = [c.replace(' ', '_') for c in df.columns]
     if request.method == 'POST':
         column = request.form.get('option')
         pickle.dump(df, open('files/pkl/df.pkl', 'wb'))
@@ -147,60 +124,57 @@ def get_numeric_columns(df):
 
 @app.route('/uploads/<filename>/<column>/predict', methods=['GET', 'POST'])
 def model(filename, column):
-    df = pickle.load(open('files/pkl/df.pkl', 'rb'))
-    df.dropna(inplace=True)
-    y = df[column]
-    del df[column]
-    df = clean_unique(df)
-
-    include = list(df.columns)
-    X = df[include]
-
-    regressor_limits = []
-    for regressor in X:
-        regressor_limits.append({"name":regressor, "min": min(df[regressor]), "max": max(df[regressor]), "numeric": is_numeric(df[regressor].values), "values": df[regressor].unique()})
-
-    df = create_dummy_values(df)
-    include = list(df.columns)
-    X = df[include]
-
-    regressor_limits_prediction = []
-    for regressor in X:
-        regressor_limits_prediction.append({"name":regressor})
-
-
-    nc_columns = get_numeric_columns(df)
-    nc = [x for x in nc_columns if x != column]
-    df.ix[:, nc] = (df.ix[:, nc] - df.ix[:, nc].mean())\
-                   / df.ix[:, nc].std()
-
-    X = df[include]
-    # y = df[column]
-
-    values = list(y.values)
-
-    if not is_numeric(values):
-        PREDICTOR = RandomForestClassifier().fit(X, y)
+    if os.path.isfile('files/pkl/PREDICTOR-'+column+'.pkl') and os.path.isfile('files/pkl/data-'+column+'.pkl'):
+        data = pickle.load(open('files/pkl/data-'+column+'.pkl', 'rb'))
     else:
-        if uniqueness(values) == 'small':
+        df = pickle.load(open('files/pkl/df.pkl', 'rb'))
+        df.dropna(inplace=True)
+        y = df[column]
+        del df[column]
+        df = clean_unique(df)
+
+        include = list(df.columns)
+        X = df[include]
+
+        regressor_limits = []
+        for regressor in X:
+            regressor_limits.append({"name":regressor, "min": min(df[regressor]), "max": max(df[regressor]), "numeric": is_numeric(df[regressor].values), "values": df[regressor].unique()})
+
+        df = create_dummy_values(df)
+        include = list(df.columns)
+        X = df[include]
+
+        regressor_limits_prediction = include
+
+        nc_columns = get_numeric_columns(df)
+        nc = [x for x in nc_columns if x != column]
+        df.ix[:, nc] = (df.ix[:, nc] - df.ix[:, nc].mean())\
+                       / df.ix[:, nc].std()
+
+        X = df[include]
+        # y = df[column]
+
+        values = list(y.values)
+
+        if not is_numeric(values):
             PREDICTOR = RandomForestClassifier().fit(X, y)
         else:
-            PREDICTOR = RandomForestRegressor().fit(X, y)   
+            if uniqueness(values) == 'small':
+                PREDICTOR = RandomForestClassifier().fit(X, y)
+            else:
+                PREDICTOR = RandomForestRegressor().fit(X, y)   
 
-    data = {}
-    data['predictor'] = camel_case_split(str(type(PREDICTOR)).split('.')[-1])
-    data['score'] = PREDICTOR.score(X,y)
-    data['length'] = len(X)
-    data['regressors'] = regressor_limits
-    data['prediction'] = column
-    pickle.dump(PREDICTOR, open('files/pkl/PREDICTOR.pkl', 'wb'))
+        data = {}
+        data['predictor'] = camel_case_split(str(type(PREDICTOR)).split('.')[-1])
+        data['score'] = PREDICTOR.score(X,y)
+        data['stats'] = {'length':len(X), 'ratio':len(y[y==1])/float(len(y)), 'amount':len(y[y==1])}
+        data['regressors'] = regressor_limits
+        data['regressors_predict'] = regressor_limits_prediction
+        data['prediction'] = column
+        pickle.dump(PREDICTOR, open('files/pkl/PREDICTOR-'+column+'.pkl', 'wb'))
+        pickle.dump(data, open('files/pkl/data-'+column+'.pkl', 'wb'))
     return render_template('result.html', data=data)
 # @app.route('/uploads/<filename>')
-
-def render():
-    predictor = pickle.load(open('files/pkl/PREDICTOR.pkl', 'rb'))
-    if not predictor:
-        return "hello"
 
 @app.route('/uploads/<filename>/<column>/explore', methods=['GET', 'POST'])
 def explore(filename, column):
@@ -209,13 +183,54 @@ def explore(filename, column):
     out = Markup(report.html)
     return render_template('explore.html', report=out)
 
+def normalize(val, mean, std):
+    return (val - mean) / std
+
+def output(data, column):
+    PREDICTOR = pickle.load(open('files/pkl/PREDICTOR-'+column+'.pkl', 'rb'))
+    render = []
+    for x in data.values():
+        render.append(x)
+    # Change to floats where possible
+    for i, x in enumerate(render):
+        try:
+            render[i] = float(x)
+        except ValueError:
+            pass
+    # render = map(normalize, render, 4)
+
+    # return render
+    try:
+        score = PREDICTOR.predict_proba(np.array(render).reshape(1, -1))
+    except:
+        score = PREDICTOR.predict(np.array(render).reshape(1, -1))        
+    return str(score[0,1]*100)
+    if score > 1 :
+        score = 1
+    elif score < 0:
+        score = 0
+    return round(score*100, 2)
+
+def dummify(undummified, dummy_template):
+    b = {x:0 for x in dummy_template}
+    for key, value in undummified.iteritems():
+        if key != 'column':
+            new_key = key+'_'+value
+            if new_key in b:
+                b[new_key] = 1
+            else:
+                b[key] = value
+    return b
+
 #-------- ROUTES GO HERE -----------#
 @app.route('/prediction')
 def prediction():
-    data = request.form
-    for key, value in data.iteritems():
-        print key, value
-    return jsonify(output(data))
+    undummified = request.args
+    column = undummified['column']
+    dummified = pickle.load(open('files/pkl/data-'+column+'.pkl', 'rb'))
+    dummified = dummified['regressors_predict']
+    data = dummify(undummified, dummified)
+    return jsonify(output(data, column))
 
 @app.route('/json/<path:path>')
 def send_json(path):

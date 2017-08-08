@@ -4,7 +4,7 @@
   $(function() {
     $('button#calculate').bind('click', function() {
        values = $('form').serialize();
-      $.getJSON($SCRIPT_ROOT + '/prediction?' + values, {
+      $.getJSON($SCRIPT_ROOT + '/prediction?column='+'{{data['prediction']|safe}}'+'&' + values, {
       }, function(output) {
         $("#result").text(output+'%');
       });
@@ -27,8 +27,10 @@
                 <p>{{data['predictor']}}</p>
                 <h3>Score:</h3>
                 <p>{{data['score']}}</p>
-                <h3>Rows of Data Used:</h3>
-                <p>{{data['length']}}</p>
+                <h3>Data Stats:</h3>
+                <p>Rows Used: {{data['stats']['length']}}</p>
+                <p>Amount succes: {{data['stats']['amount']}}</p>
+                <p>Success Ratio: {{data['stats']['ratio']}}</p>
                 <h3>Predictors:</h3>
                 {% for item in data['regressors'] %}
                     <p>{{item["name"]}}</p>
