@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 import re
 import pickle
 import pandas_profiling
+import matplotlib.pyplot as plt
+
 
 UPLOAD_FOLDER = 'files/uploads'
 ALLOWED_EXTENSIONS = set(['csv','xls','xlsx'])
@@ -31,7 +33,7 @@ def is_binary(column):
 
 def is_numeric(column):
     numerics = (int, float, long)
-    if all(isinstance(x, numerics) for x in column):
+    if isinstance(column, numerics) or all(isinstance(x, numerics) for x in column):
         return True
     else:
         return False
@@ -162,12 +164,28 @@ def model(filename, column):
     values = list(y.values)
 
     if not is_numeric(values):
+        print 'where'
         PREDICTOR = RandomForestClassifier().fit(X, y)
     else:
         if uniqueness(values) == 'small':
+            print 'are'
             PREDICTOR = RandomForestClassifier().fit(X, y)
         else:
+            print 'we'
             PREDICTOR = RandomForestRegressor().fit(X, y)   
+
+    importances = PREDICTOR.feature_importances_
+    print importances
+    std = np.std([tree.feature_importances_ for tree in PREDICTOR.estimators_], axis=0)
+    indices = np.argsort(importances)[::-1]
+
+    # Print the feature ranking
+    # print("Feature ranking:")
+
+    length_to_iter = X.shape[1] if X.shape[1] < 20 else 20
+    feature_importances = []
+    for f in range(length_to_iter):
+        feature_importances.append("%d. %s (%f)" % (f + 1, regressor_limits_prediction[f-1], importances[indices[f]]))
 
     data = {}
     data['predictor'] = camel_case_split(str(type(PREDICTOR)).split('.')[-1])
@@ -177,6 +195,7 @@ def model(filename, column):
     data['regressors_predict'] = regressor_limits_prediction
     data['prediction'] = column
     data['nc_columns'] = nc_columns_dict
+    data['feature_importances'] = feature_importances
 
     pickle.dump(PREDICTOR, open('files/pkl/PREDICTOR-'+column+'.pkl', 'wb'))
     pickle.dump(data, open('files/pkl/data-'+column+'.pkl', 'wb'))
@@ -215,21 +234,24 @@ def output(data, column):
         score = 1
     elif score < 0:
         score = 0
-    return round(score*100, 2)
+    print score[0]
+    return round(score[0]*100, 2)
 
 def dummify(undummified, dummy_template, nc_columns):
     b = {x:0 for x in dummy_template}
     for key, value in undummified.iteritems():
         if key != 'column':
             new_key = key+'_'+value
+            try:
+                value = float(value)
+            except:
+                value = value
             if new_key in b:
                 b[new_key] = 1
+            elif not is_numeric(value):
+                pass
             else:
-                print 'value',float(value)
-                print 'mean', nc_columns[key]['mean']
-                print 'std', nc_columns[key]['std']
                 assigned = normalize(float(value), nc_columns[key]['mean'], nc_columns[key]['std'])
-                print 'normalized', assigned
                 b[key] = assigned
     return b
 

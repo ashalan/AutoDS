@@ -35,6 +35,10 @@
                 {% for item in data['regressors'] %}
                     <p>{{item["name"]}}</p>
                 {% endfor %}
+                <h3>Feature importances:</h3>
+                {% for item in data['feature_importances'] %}
+                    <p>{{item}}</p>
+                {% endfor %}
             </div>
             <div class='model'>
               <h1>Your API</h1>
